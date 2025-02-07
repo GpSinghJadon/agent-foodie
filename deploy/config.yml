@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: food-agent-config
+data:
+  .env: |  # Put the contents of your .env file here
+    OLLAMA_BASE_URL=http://192.168.1.55:11433
+    OLLAMA_MODEL=mistral:latest
+    RESTAURANTS_API_URL=http://your-restaurants-api/ # Replace with your restaurants API URL
+

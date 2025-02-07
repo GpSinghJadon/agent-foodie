@@ -1,0 +1,66 @@
+Timestamp,Event,Details
+2025-02-06T15:09:25.113664,Client Connect,Client m_LiEAoE8h8AlU3WAAAB connected.
+2025-02-06T15:12:15.795443,Client Connect,Client 9jjhEgOBI7F5LeToAAAB connected.
+2025-02-06T15:12:23.270159,Client Disconnect,Client 9jjhEgOBI7F5LeToAAAB disconnected.
+2025-02-06T15:12:44.946362,Client Connect,Client mAzqWVIMflbAGB3gAAAD connected.
+2025-02-06T15:12:46.981887,Client Connect,Client BlReARfcp1lMCd3mAAAC connected.
+2025-02-06T15:12:48.951094,Client Connect,Client aI5exoYlxRfYSH9tAAAE connected.
+2025-02-06T15:12:50.935544,Client Connect,Client tbs-j1kT8KrikXzQAAAG connected.
+2025-02-06T15:13:45.526422,Client Connect,Client -VUX8t-v1uJRwuSCAAAB connected.
+2025-02-06T15:14:36.986234,Client Connect,Client K6EQw2oeqcACuxlEAAAB connected.
+2025-02-06T15:14:37.938291,Client Connect,Client 3_uIfeah_1WNkmHyAAAD connected.
+2025-02-06T15:14:39.949711,Client Connect,Client AHXDEiNUybi59l9lAAAF connected.
+2025-02-06T15:14:40.931842,Client Connect,Client eZn6YfLVgNxW0iuTAAAH connected.
+2025-02-06T15:15:25.471495,Client Disconnect,Client -VUX8t-v1uJRwuSCAAAB disconnected.
+2025-02-06T15:15:26.977911,Client Disconnect,Client AHXDEiNUybi59l9lAAAF disconnected.
+2025-02-06T15:15:31.975024,Client Disconnect,Client eZn6YfLVgNxW0iuTAAAH disconnected.
+2025-02-06T15:15:36.987631,Client Disconnect,Client K6EQw2oeqcACuxlEAAAB disconnected.
+2025-02-06T15:15:42.007599,Client Disconnect,Client 3_uIfeah_1WNkmHyAAAD disconnected.
+2025-02-06T15:20:16.559858,Client Connect,Client QcfZHgEIsBGuJ-9NAAAB connected.
+2025-02-06T15:32:07.659775,Client Disconnect,Client QcfZHgEIsBGuJ-9NAAAB disconnected.
+2025-02-06T15:32:21.248115,Client Connect,Client OGq7hXj6JERd40Q5AAAB connected.
+2025-02-06T15:32:41.499648,Client Disconnect,Client OGq7hXj6JERd40Q5AAAB disconnected.
+2025-02-06T15:32:41.712729,Client Connect,Client Fb1O-uslcOzpThedAAAD connected.
+2025-02-06T15:32:53.864407,Client Disconnect,Client Fb1O-uslcOzpThedAAAD disconnected.
+2025-02-06T16:34:03.460861,Client Connect,Client D6eijZ2cBUdDkM_hAAAB connected.
+2025-02-06T16:58:47.531150,Client Connect,Client G90y3tVjrV9BViapAAAB connected.
+2025-02-06T17:01:41.521833,Client Connect,Client 9f768XVDTvxdQKe2AAAB connected.
+2025-02-06T17:02:03.272105,Client Disconnect,Client 9f768XVDTvxdQKe2AAAB disconnected.
+2025-02-06T17:02:03.522860,Client Connect,Client b1s10d--Dy3G88ClAAAD connected.
+2025-02-06T17:02:25.904853,Restaurant Search,"Successful search: {'budget': 50.0, 'dish_name': 'pasta', 'dish_type': 'veg'}"
+2025-02-06T17:03:19.491531,Client Connect,Client eUR5qEjgSHjd7V6gAAAB connected.
+2025-02-06T17:04:22.727190,Client Disconnect,Client eUR5qEjgSHjd7V6gAAAB disconnected.
+2025-02-06T17:04:23.181052,Client Connect,Client NbpHQj6OQlWAKppzAAAD connected.
+2025-02-06T17:08:25.457626,Client Disconnect,Client NbpHQj6OQlWAKppzAAAD disconnected.
+2025-02-06T17:08:25.926191,Client Connect,Client Zh6Uu8nDZwdbmvKmAAAF connected.
+2025-02-06T17:09:03.988539,Client Disconnect,Client Zh6Uu8nDZwdbmvKmAAAF disconnected.
+2025-02-06T17:09:04.177925,Client Connect,Client 8aTvNAYKnEUacUUUAAAH connected.
+2025-02-06T17:09:13.588733,Client Connect,Client flgZuBWq9OrarZJYAAAB connected.
+2025-02-06T17:09:36.420034,Restaurant Search,"Successful search: {'budget': 1000.0, 'dish_name': 'Biryani', 'dish_type': 'non-veg'}"
+2025-02-06T17:10:31.973246,Client Connect,Client tjhGLfWyq1-DOuLJAAAB connected.
+2025-02-06T17:11:42.706735,Client Disconnect,Client tjhGLfWyq1-DOuLJAAAB disconnected.
+2025-02-06T17:11:43.126807,Client Connect,Client poS_VoxFaXVjg7PfAAAD connected.
+2025-02-06T17:12:33.522562,Client Connect,Client U6lveCKeJI_I3ruKAAAB connected.
+2025-02-06T17:12:36.280235,Client Disconnect,Client U6lveCKeJI_I3ruKAAAB disconnected.
+2025-02-06T17:12:36.424653,Client Connect,Client yA3A3N5o0m3XRs66AAAD connected.
+2025-02-06T17:13:03.725372,Client Disconnect,Client yA3A3N5o0m3XRs66AAAD disconnected.
+2025-02-06T17:13:03.858971,Client Connect,Client kX52tIDtXl4-jGj2AAAF connected.
+2025-02-06T17:16:19.924491,Client Connect,Client WsrfxgI5yMWJY_3RAAAB connected.
+2025-02-06T17:16:25.108744,Client Disconnect,Client WsrfxgI5yMWJY_3RAAAB disconnected.
+2025-02-06T17:16:25.731236,Client Connect,Client c8_XOPNBp-xhDi4OAAAD connected.
+2025-02-06T17:16:47.396260,Restaurant Search,"Successful search: {'budget': 50.0, 'dish_name': 'pasta', 'dish_type': 'veg'}"
+2025-02-06T17:18:24.595033,Client Connect,Client qJUTCK0lhw67y6oCAAAB connected.
+2025-02-06T17:18:37.653847,Client Disconnect,Client qJUTCK0lhw67y6oCAAAB disconnected.
+2025-02-06T17:18:37.990144,Client Connect,Client QbCtSCJLZT8DtOuUAAAD connected.
+2025-02-06T17:18:58.105346,Restaurant Search,"Successful search: {'budget': 50.0, 'dish_name': 'pasta', 'dish_type': 'veg'}"
+2025-02-06T17:21:08.737219,Client Disconnect,Client QbCtSCJLZT8DtOuUAAAD disconnected.
+2025-02-06T17:21:09.201826,Client Connect,Client JnJeFOAyqitceA6uAAAF connected.
+2025-02-06T17:21:22.648507,Restaurant Search,"Successful search: {'budget': 50.0, 'dish_name': 'pasta', 'dish_type': 'veg'}"
+2025-02-06T17:21:56.862430,Client Disconnect,Client JnJeFOAyqitceA6uAAAF disconnected.
+2025-02-06T17:21:57.037531,Client Connect,Client P9TVkTtMaHA3gzdnAAAH connected.
+2025-02-06T17:22:19.532048,Client Connect,Client oREQ4HVPzbWjXaQ1AAAB connected.
+2025-02-06T17:22:42.819197,Restaurant Search,"Successful search: {'budget': 50.0, 'dish_name': 'pasta', 'dish_type': 'veg'}"
+2025-02-06T17:23:16.525093,Client Connect,Client xXVHWbP4FaZ_Z0j5AAAB connected.
+2025-02-06T17:23:17.952394,Client Disconnect,Client xXVHWbP4FaZ_Z0j5AAAB disconnected.
+2025-02-06T17:23:18.151631,Client Connect,Client WdDgq_rcLafITe_ZAAAD connected.
+2025-02-06T17:24:22.194698,Restaurant Search,"Successful search: {'budget': 1000.0, 'dish_name': 'pizza', 'dish_type': 'veg'}"

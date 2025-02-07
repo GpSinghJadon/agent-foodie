@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: food-agent
+spec:
+  replicas: 1  # Adjust as needed
+  selector:
+    matchLabels:
+      app: food-agent
+  template:
+    metadata:
+      labels:
+        app: food-agent
+    spec:
+      containers:
+        - name: food-agent
+          image: <your-docker-image> # Replace with your image name and tag
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: food-agent-config  # ConfigMap for environment variables
+          resources: # Add resource limits and requests as needed
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+
