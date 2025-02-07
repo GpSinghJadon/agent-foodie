@@ -1,12 +1,16 @@
+import uuid
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 import logging
 import os
 import csv
 from datetime import datetime
+from faker import Faker
 
 from typing import Any, Optional
 
 import requests
-from fastapi import FastAPI, WebSocket, HTTPException
+from fastapi import Depends, FastAPI, WebSocket, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from langchain.tools import StructuredTool
 from langchain_ollama import ChatOllama
@@ -17,6 +21,8 @@ from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
 
 from socketio import AsyncServer, ASGIApp
+
+from .db_manager import DatabaseManager, ChatSession, Chat, LLM, Restaurant
 
 
 # Logging Configuration
@@ -47,6 +53,8 @@ def init_audit_log():
 
 
 init_audit_log()
+# Initialize database manager
+db_manager = DatabaseManager()
 
 
 def audit_event(event: str, details: str):
@@ -110,6 +118,88 @@ restaurants_data = [
 ]
 
 
+class ChatMessage(BaseModel):
+    message: str
+    session_id: Optional[str] = None
+    llm_id: Optional[int] = None
+
+class LLMMetadata(BaseModel):
+    name: str
+    base_url: str
+    model_name: str
+
+def get_db():
+    with db_manager.get_db() as db:
+        yield db
+
+
+
+@app.post("/chat")
+async def chat_endpoint(data: ChatMessage, db: Session = Depends(get_db)):
+    if not data.session_id:
+        data.session_id = str(uuid.uuid4())
+        new_session = ChatSession(id=data.session_id, created_at=datetime.now().isoformat())
+        db.add(new_session)
+        logger.info(f"New session created: {data.session_id}")
+
+    if data.llm_id:
+        llm = db.query(LLM).filter(LLM.id == data.llm_id).first()
+        if not llm:
+            raise HTTPException(status_code=404, detail="LLM not found")
+
+    response_message = f"Echo: {data.message}"
+    timestamp = datetime.now().isoformat()
+
+    user_message = Chat(session_id=data.session_id, message=data.message, role="user", timestamp=timestamp)
+    agent_message = Chat(session_id=data.session_id, message=response_message, role="agent", timestamp=timestamp)
+    
+    db.add(user_message)
+    db.add(agent_message)
+    db.commit()
+
+    return {"session_id": data.session_id, "response": response_message}
+
+@app.get("/sessions")
+async def list_sessions(db: Session = Depends(get_db)):
+    sessions = db.query(ChatSession).all()
+    return [{"session_id": session.id, "created_at": session.created_at} for session in sessions]
+
+@app.get("/session/{session_id}")
+async def get_session(session_id: str, db: Session = Depends(get_db)):
+    chats = db.query(Chat).filter(Chat.session_id == session_id).all()
+    if not chats:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return [{"message": chat.message, "role": chat.role, "timestamp": chat.timestamp} for chat in chats]
+
+@app.post("/llms")
+async def add_llm(llm: LLMMetadata, db: Session = Depends(get_db)):
+    try:
+        new_llm = LLM(name=llm.name, base_url=llm.base_url, model_name=llm.model_name)
+        db.add(new_llm)
+        db.commit()
+    except IntegrityError:
+        raise HTTPException(status_code=400, detail="LLM with this name already exists")
+    return {"message": "LLM added successfully"}
+
+@app.get("/llms")
+async def list_llms(db: Session = Depends(get_db)):
+    llms = db.query(LLM).all()
+    return [{"id": llm.id, "name": llm.name, "base_url": llm.base_url, "model_name": llm.model_name} for llm in llms]
+
+@app.put("/llms/{llm_id}")
+async def update_llm(llm_id: int, llm: LLMMetadata, db: Session = Depends(get_db)):
+    db_llm = db.query(LLM).filter(LLM.id == llm_id).first()
+    if not db_llm:
+        raise HTTPException(status_code=404, detail="LLM not found")
+    
+    db_llm.name = llm.name
+    db_llm.base_url = llm.base_url
+    db_llm.model_name = llm.model_name
+    db.commit()
+    
+    return {"message": "LLM updated successfully"}
+
+
 @app.get("/app/v1/restaurants")
 async def get_restaurants(
     dish_type: str, dish_name: str, budget: float
@@ -121,6 +211,102 @@ async def get_restaurants(
         and dish_name in r["dishes"]
         and r["budget"] <= budget
     ]
+
+
+@app.post("/populate_restaurants")
+async def populate_restaurants(db: Session = Depends(get_db)):
+    faker = Faker()
+    for _ in range(10):
+        restaurant = Restaurant(
+            name=faker.company(),
+            rating=round(faker.pyfloat(min_value=1, max_value=5, right_digits=1), 1),
+            dish_type=faker.random_element(elements=["veg", "non-veg"]),
+            cuisines=faker.random_element(elements=['Indian','Italian','Chinese','Mexican','Thai','Japanese','French','Spanish','American','Greek','Vietnamese','Lebanese','Moroccan','Ethiopian','Brazilian','Peruvian','Korean','Turkish','German','Russian']),
+            budget=faker.pyfloat(min_value=100, max_value=1000),
+            
+            dishes=','.join(faker.random_elements(unique=True, elements=['Butter Chicken','Chicken Tikka Masala','Samosa','Naan','Biryani','Dal Makhani','Palak Paneer','Rogan Josh','Vindaloo','Tandoori Chicken','Pizza Margherita','Spaghetti Carbonara','Lasagna','Risotto','Gnocchi','Kung Pao Chicken','Sweet and Sour Pork','Mapo Tofu','Peking Duck','Dim Sum','Tacos al Pastor','Enchiladas','Guacamole','Burritos','Chiles Rellenos','Pad Thai','Green Curry','Tom Yum Soup','Mango Sticky Rice','Massaman Curry','Sushi','Ramen','Tempura','Teriyaki Chicken','Miso Soup','Coq au Vin','Boeuf Bourguignon','Crêpes','Onion Soup','Ratatouille','Paella','Tapas','Gazpacho','Tortilla Española','Churros','Hamburger','Hot Dog','Mac and Cheese','Apple Pie','Barbecue Ribs','Souvlaki','Moussaka','Spanakopita','Baklava','Gyros','Pho','Banh Mi','Goi Cuon','Bun Cha','Ca Phe Sua Da','Hummus','Falafel','Shawarma','Tabbouleh','Baba Ghanoush','Tagine','Couscous','Pastilla','Harira','Mint Tea','Injera','Doro Wat','Kitfo','Gomen','Tibs','Feijoada','Moqueca','Coxinha','Pão de Queijo','Brigadeiro','Ceviche','Lomo Saltado','Aji de Gallina','Pachamanca','Suspiro Limeño','Kimchi','Bibimbap','Bulgogi','Tteokbokki','Japchae','Kebab','Baklava','Dolma','Manti','Pide','Schnitzel','Sausage','Sauerkraut','Black Forest Cake','Spätzle','Borscht','Pelmeni','Beef Stroganoff','Blini','Kvass'])),
+        )
+        db.add(restaurant)
+    db.commit()
+    return {"message": "Fake restaurant data populated successfully"}
+
+
+from fastapi import Path, Query
+
+@app.get("/restaurants/{restaurant_id}")
+async def get_restaurant(restaurant_id: int = Path(..., description="The ID of the restaurant"), db: Session = Depends(get_db)):
+    restaurant = db.query(Restaurant).filter(Restaurant.id == restaurant_id).first()
+    if not restaurant:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+    return restaurant
+
+@app.get("/restaurants")
+async def list_restaurants(
+    skip: int = Query(default=0, description="Skip N records"),
+    limit: int = Query(default=10, description="Limit N records"),
+    db: Session = Depends(get_db)
+):
+    restaurants = db.query(Restaurant).offset(skip).limit(limit).all()
+    return restaurants
+
+@app.post("/restaurants")
+async def create_restaurant(
+    name: str,
+    rating: float,
+    dish_type: str,
+    cuisines: str,
+    budget: float,
+    dishes: str,
+    db: Session = Depends(get_db)
+):
+    restaurant = Restaurant(
+        name=name,
+        rating=rating,
+        dish_type=dish_type,
+        cuisines=cuisines,
+        budget=budget,
+        dishes=dishes
+    )
+    db.add(restaurant)
+    db.commit()
+    db.refresh(restaurant)
+    return restaurant
+
+@app.put("/restaurants/{restaurant_id}")
+async def update_restaurant(
+    restaurant_id: int,
+    name: str = None,
+    rating: float = None,
+    dish_type: str = None,
+    cuisines: str = None,
+    budget: float = None,
+    dishes: str = None,
+    db: Session = Depends(get_db)
+):
+    restaurant = db.query(Restaurant).filter(Restaurant.id == restaurant_id).first()
+    if not restaurant:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+    
+    if name: restaurant.name = name
+    if rating: restaurant.rating = rating
+    if dish_type: restaurant.dish_type = dish_type
+    if cuisines: restaurant.cuisines = cuisines
+    if budget: restaurant.budget = budget
+    if dishes: restaurant.dishes = dishes
+    
+    db.commit()
+    db.refresh(restaurant)
+    return restaurant
+
+@app.delete("/restaurants/{restaurant_id}")
+async def delete_restaurant(restaurant_id: int, db: Session = Depends(get_db)):
+    restaurant = db.query(Restaurant).filter(Restaurant.id == restaurant_id).first()
+    if not restaurant:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+    
+    db.delete(restaurant)
+    db.commit()
+    return {"message": f"Restaurant {restaurant_id} deleted successfully"}
 
 
 def restaurants_search_tool(
@@ -230,35 +416,66 @@ async def disconnect(sid):
 
 @sio.on("chat_message")
 async def handle_chat_message(sid, data):
-    session = await sio.get_session(sid)
-    agent_executor = session["agent_executor"]
+    session_id = data.get("session_id")
+    llm_id = data.get("llm_id")
+    message = data.get("message")
 
+    if not session_id or not message:
+        await sio.emit("chat_response", {"error": "Invalid message format"}, room=sid)
+        return
+
+    # Load the DB session
+    db = SessionLocal()
     try:
-        print(f"event recieved")
-        user_input = data.get("message")
-        if not user_input:
-            raise ValueError(
-                "Invalid message format. Expected {'message': 'user input'}"
+        # Fetch chat history for the session
+        chat_history = db.query(Chat).filter(Chat.session_id == session_id).all()
+        history_messages = [
+            {"role": chat.role, "message": chat.message} for chat in chat_history
+        ]
+
+        # Fetch the selected LLM
+        llm = db.query(LLM).filter(LLM.id == llm_id).first()
+        if not llm:
+            await sio.emit("chat_response", {"error": "LLM not found"}, room=sid)
+            return
+
+        # Simulate LLM interaction
+        response_message = f"LLM {llm.name} Response: Echo of '{message}'"
+        try:
+            config = {"configurable": {"thread_id": "abc123"}}
+            response = agent_executor.invoke(
+                {"messages": [HumanMessage(content=user_input)]}, config
             )
+            response_message = getattr(
+                        response["messages"][-1],
+                        "content",
+                        response["messages"][-1],
+                    )
+            await sio.emit(
+                "chat_response",
+                {
+                    "response": response_message
+                },
+                room=sid,  # Send only to client's room
+            )
+        except Exception as e:
+            await sio.emit("chat_response", {"error": str(e)}, room=sid)
 
-        config = {"configurable": {"thread_id": "abc123"}}
-        response = agent_executor.invoke(
-            {"messages": [HumanMessage(content=user_input)]}, config
-        )
+        # Save the chat response
+        timestamp = datetime.now()
+        db.add(Chat(session_id=session_id, message=message, role="user", timestamp=timestamp))
+        db.add(Chat(session_id=session_id, message=response_message, role="agent", timestamp=timestamp))
+        db.commit()
 
-        await sio.emit(
-            "chat_response",
-            {
-                "response": getattr(
-                    response["messages"][-1],
-                    "content",
-                    response["messages"][-1],
-                )
-            },
-            room=sid,  # Send only to client's room
-        )
+        # Emit the response
+        await sio.emit("chat_response", {"response": response_message}, room=sid)
+
     except Exception as e:
+        logger.error(f"Error handling chat message: {e}")
         await sio.emit("chat_response", {"error": str(e)}, room=sid)
+
+    finally:
+        db.close()
 
 
 @sio.on("simple_message")

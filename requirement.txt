@@ -1,9 +1,0 @@
-fastapi
-uvicorn
-langchain
-Ollama
-requests
-python-multipart
-langchain-community
-langchain-google-genai
-python-socketio
