@@ -1,3 +1,5 @@
+from fastapi import Path, Query
+
 import uuid
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -17,12 +19,12 @@ from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic_settings import BaseSettings
 
 from socketio import AsyncServer, ASGIApp
 
-from .db_manager import DatabaseManager, ChatSession, Chat, LLM, Restaurant
+from app.db_manager import DatabaseManager, ChatSession, Chat, LLM, Restaurant
 
 
 # Logging Configuration
@@ -86,38 +88,6 @@ sio = AsyncServer(async_mode="asgi", cors_allowed_origins=config.cors_origins)
 socket_app = ASGIApp(sio, socketio_path="socket.io")
 
 
-# Dummy restaurant data (replace with your actual data source)
-restaurants_data = [
-    {
-        "restaurant_id": 1,
-        "name": "Pizza on the MARS Place",
-        "rating": 4.5,
-        "dish_type": "veg",
-        "cuisines": ["Italian"],
-        "budget": 30,
-        "dishes": ["pizza", "pasta"],
-    },
-    {
-        "dish_type": "veg",
-        "restaurant_id": 2,
-        "name": "Curry House on the MOON Land Place",
-        "rating": 4.2,
-        "cuisines": ["Indian"],
-        "budget": 25,
-        "dishes": ["curry", "rice"],
-    },
-    {
-        "dish_type": "non-veg",
-        "restaurant_id": 3,
-        "name": "Burger Joint",
-        "rating": 4.0,
-        "cuisines": ["American"],
-        "budget": 20,
-        "dishes": ["burger", "fries"],
-    },
-]
-
-
 class ChatMessage(BaseModel):
     message: str
     session_id: Optional[str] = None
@@ -128,10 +98,22 @@ class LLMMetadata(BaseModel):
     base_url: str
     model_name: str
 
+
+class RestaurantPydantic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    rating: float
+    dish_type: str
+    cuisines: str
+    budget: float
+    dishes: str
+
+
 def get_db():
     with db_manager.get_db() as db:
         yield db
-
 
 
 @app.post("/chat")
@@ -202,15 +184,27 @@ async def update_llm(llm_id: int, llm: LLMMetadata, db: Session = Depends(get_db
 
 @app.get("/app/v1/restaurants")
 async def get_restaurants(
-    dish_type: str, dish_name: str, budget: float
-) -> list[dict[str, Any]]:
-    return [
-        r
-        for r in restaurants_data
-        if r["dish_type"] == dish_type
-        and dish_name in r["dishes"]
-        and r["budget"] <= budget
-    ]
+    dish_type: str = Query(default="veg", description="veg/non-veg"),
+    dish_name: str = Query(
+        default="Pizza", description="Dish name which has to served in restaurant"
+    ),
+    budget: float = Query(default=10, description="Total budget of the meal"),
+    skip: int = Query(default=0, description="Skip N records"),
+    limit: int = Query(default=10, description="Limit N records"),
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    restaurants = (
+        db.query(Restaurant)
+        .filter(
+            Restaurant.dish_type == dish_type,
+            # Restaurant.budget <= budget,
+            Restaurant.dishes.contains(dish_name),
+        )
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return {"data": [RestaurantPydantic.model_validate(res) for res in restaurants]}
 
 
 @app.post("/populate_restaurants")
@@ -230,8 +224,6 @@ async def populate_restaurants(db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Fake restaurant data populated successfully"}
 
-
-from fastapi import Path, Query
 
 @app.get("/restaurants/{restaurant_id}")
 async def get_restaurant(restaurant_id: int = Path(..., description="The ID of the restaurant"), db: Session = Depends(get_db)):
