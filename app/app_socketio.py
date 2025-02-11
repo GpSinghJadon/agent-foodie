@@ -1,5 +1,5 @@
 from fastapi import Path, Query
-
+import json
 import uuid
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -144,7 +144,14 @@ async def chat_endpoint(data: ChatMessage, db: Session = Depends(get_db)):
 @app.get("/sessions")
 async def list_sessions(db: Session = Depends(get_db)):
     sessions = db.query(ChatSession).all()
-    return [{"session_id": session.id, "created_at": session.created_at} for session in sessions]
+    return [
+        {
+            "session_id": session.id,
+            "created_at": session.created_at,
+            "title": f"Chat Session {session.id}",
+        }
+        for session in sessions
+    ]
 
 @app.get("/session/{session_id}")
 async def get_session(session_id: str, db: Session = Depends(get_db)):
@@ -207,7 +214,7 @@ async def get_restaurants(
     return {"data": [RestaurantPydantic.model_validate(res) for res in restaurants]}
 
 
-@app.post("/populate_restaurants")
+@app.post("/populate_fake_restaurants")
 async def populate_restaurants(db: Session = Depends(get_db)):
     faker = Faker()
     for _ in range(10):
@@ -223,6 +230,15 @@ async def populate_restaurants(db: Session = Depends(get_db)):
         db.add(restaurant)
     db.commit()
     return {"message": "Fake restaurant data populated successfully"}
+
+
+@app.post("/load_restaurants")
+async def load_restaurants(db: Session = Depends(get_db)):
+    for row in json.load(open("restaurants.json", "r")):
+        restaurant = Restaurant(**row)
+        db.add(restaurant)
+    db.commit()
+    return {"message": "Logical restaurants data populated successfully"}
 
 
 @app.get("/restaurants/{restaurant_id}")
@@ -411,63 +427,88 @@ async def handle_chat_message(sid, data):
     session_id = data.get("session_id")
     llm_id = data.get("llm_id")
     message = data.get("message")
+    socket_session = await sio.get_session(sid)
+    agent_executor = socket_session.get("agent_executor")
+    memory = socket_session.get("memory")
 
     if not session_id or not message:
         await sio.emit("chat_response", {"error": "Invalid message format"}, room=sid)
         return
 
     # Load the DB session
-    db = SessionLocal()
+    db = Session()
     try:
-        # Fetch chat history for the session
-        chat_history = db.query(Chat).filter(Chat.session_id == session_id).all()
-        history_messages = [
-            {"role": chat.role, "message": chat.message} for chat in chat_history
-        ]
+        with db_manager.get_db() as db:  # Use the context manager here
 
-        # Fetch the selected LLM
-        llm = db.query(LLM).filter(LLM.id == llm_id).first()
-        if not llm:
-            await sio.emit("chat_response", {"error": "LLM not found"}, room=sid)
-            return
+            # Check if session exists, create if not
+            session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+            if not session:
+                session = ChatSession(
+                    id=session_id, created_at=datetime.now().isoformat()
+                )
+                db.add(session)
+                db.commit()
+                logger.info(f"New session created: {session_id}")
 
-        # Simulate LLM interaction
-        response_message = f"LLM {llm.name} Response: Echo of '{message}'"
-        try:
+            # Fetch chat history for the session
+            chat_history = db.query(Chat).filter(Chat.session_id == session_id).all()
+            history_messages = [
+                {"role": chat.role, "message": chat.message} for chat in chat_history
+            ]
+
+            # Fetch the selected LLM
+            llm = db.query(LLM).filter(LLM.id == llm_id).first()
+            if not llm:
+                await sio.emit("chat_response", {"error": "LLM not found"}, room=sid)
+                return
+
             config = {"configurable": {"thread_id": "abc123"}}
             response = agent_executor.invoke(
-                {"messages": [HumanMessage(content=user_input)]}, config
+                {"messages": [HumanMessage(content=message)]}, config
             )
             response_message = getattr(
-                        response["messages"][-1],
-                        "content",
-                        response["messages"][-1],
-                    )
-            await sio.emit(
-                "chat_response",
-                {
-                    "response": response_message
-                },
-                room=sid,  # Send only to client's room
+                response["messages"][-1],
+                "content",
+                response["messages"][-1],
             )
-        except Exception as e:
-            await sio.emit("chat_response", {"error": str(e)}, room=sid)
+            # Save the chat response
+            timestamp = datetime.now()
+            user_message = Chat(
+                session_id=session_id,
+                message=message,
+                role="user",
+                timestamp=timestamp.isoformat(),
+            )
+            db.add(user_message)
+            db.commit()
+            user_message_id = user_message.id
 
-        # Save the chat response
-        timestamp = datetime.now()
-        db.add(Chat(session_id=session_id, message=message, role="user", timestamp=timestamp))
-        db.add(Chat(session_id=session_id, message=response_message, role="agent", timestamp=timestamp))
-        db.commit()
+            agent_message = Chat(
+                session_id=session_id,
+                message=response_message,
+                role="agent",
+                timestamp=timestamp.isoformat(),
+            )
+            db.add(agent_message)
+            db.commit()
+            agent_message_id = agent_message.id
 
         # Emit the response
-        await sio.emit("chat_response", {"response": response_message}, room=sid)
+        await sio.emit(
+            "chat_response",
+            {
+                "response": response_message,
+                "session_id": session_id,
+                "user_message_id": user_message_id,
+                "agent_message_id": agent_message_id,
+                "model_id": llm_id,
+            },
+            room=sid,  # Send only to client's room
+        )
 
     except Exception as e:
         logger.error(f"Error handling chat message: {e}")
         await sio.emit("chat_response", {"error": str(e)}, room=sid)
-
-    finally:
-        db.close()
 
 
 @sio.on("simple_message")
