@@ -10,6 +10,13 @@ from datetime import datetime
 from faker import Faker
 
 from typing import Any, Optional
+from app.schemas import (
+    ChatMessageSchema,
+    LLMSchema,
+    ChatSessionSchema,
+    ChatSchema,
+    RestaurantSchema,
+)
 
 import requests
 from fastapi import Depends, FastAPI, WebSocket, HTTPException
@@ -17,39 +24,29 @@ from fastapi.middleware.cors import CORSMiddleware
 from langchain.tools import StructuredTool
 from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 from pydantic import BaseModel, ConfigDict, Field
-from pydantic_settings import BaseSettings
+
+from app.config import get_settings
+
+settings = get_settings()
 
 from socketio import AsyncServer, ASGIApp
 
 from app.db_manager import DatabaseManager, ChatSession, Chat, LLM, Restaurant
 
 
-# Logging Configuration
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+from app.logger import setup_logger
 
-
-# Configuration via .env and pydantic_settings
-class Settings(BaseSettings):
-    ollama_base_url: str
-    ollama_model: str
-    restaurants_api_url: str
-    audit_file: str = "audit.csv"
-    cors_origins: list[str] = ["*"]
-
-
-config = Settings()
+logger = setup_logger(__name__)
 
 
 # Initialize Audit Log
 def init_audit_log():
-    if not os.path.exists(config.audit_file):
-        with open(config.audit_file, "w", newline="") as csvfile:
+    if not os.path.exists(settings.audit_file):
+        with open(settings.audit_file, "w", newline="") as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(["Timestamp", "Event", "Details"])
 
@@ -61,7 +58,7 @@ db_manager = DatabaseManager()
 
 def audit_event(event: str, details: str):
     timestamp = datetime.now().isoformat()
-    with open(config.audit_file, "a", newline="") as csvfile:
+    with open(settings.audit_file, "a", newline="") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow([timestamp, event, details])
 
@@ -77,14 +74,14 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=config.cors_origins,  # Loaded from .env
+    allow_origins=settings.cors_origins,  # Loaded from .env
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Initialize Socket.IO
-sio = AsyncServer(async_mode="asgi", cors_allowed_origins=config.cors_origins)
+sio = AsyncServer(async_mode="asgi", cors_allowed_origins=settings.cors_origins)
 socket_app = ASGIApp(sio, socketio_path="socket.io")
 
 
@@ -111,9 +108,21 @@ class RestaurantPydantic(BaseModel):
     dishes: str
 
 
+from app.database import db
+
 def get_db():
-    with db_manager.get_db() as db:
-        yield db
+    with db.get_db() as session:
+        yield session
+
+from app.repositories.chat_repository import ChatRepository
+from app.repositories.chat_session_repository import ChatSessionRepository
+from app.repositories.llm_repository import LLMRepository
+from app.repositories.restaurant_repository import RestaurantRepository
+
+chat_repo = ChatRepository()
+session_repo = ChatSessionRepository()
+llm_repo = LLMRepository()
+restaurant_repo = RestaurantRepository()
 
 
 @app.post("/chat")
@@ -134,31 +143,25 @@ async def chat_endpoint(data: ChatMessage, db: Session = Depends(get_db)):
 
     user_message = Chat(session_id=data.session_id, message=data.message, role="user", timestamp=timestamp)
     agent_message = Chat(session_id=data.session_id, message=response_message, role="agent", timestamp=timestamp)
-    
+
     db.add(user_message)
     db.add(agent_message)
     db.commit()
 
     return {"session_id": data.session_id, "response": response_message}
 
+
 @app.get("/sessions")
 async def list_sessions(db: Session = Depends(get_db)):
-    sessions = db.query(ChatSession).all()
-    return [
-        {
-            "session_id": session.id,
-            "created_at": session.created_at,
-            "title": f"Chat Session {session.id}",
-        }
-        for session in sessions
-    ]
+    return session_repo.get_all(db)
 
 @app.get("/session/{session_id}")
 async def get_session(session_id: str, db: Session = Depends(get_db)):
-    chats = db.query(Chat).filter(Chat.session_id == session_id).all()
+    chats = chat_repo.get_by_session_id(db, session_id)
     if not chats:
         raise HTTPException(status_code=404, detail="Session not found")
-    return [{"message": chat.message, "role": chat.role, "timestamp": chat.timestamp} for chat in chats]
+    return [ChatSchema.model_validate(chat) for chat in chats]
+
 
 @app.post("/llms")
 async def add_llm(llm: LLMMetadata, db: Session = Depends(get_db)):
@@ -348,7 +351,7 @@ def restaurants_search_tool(
             params["dish_type"] = dish_type
 
         response = requests.get(
-            config.restaurants_api_url, params=params, timeout=10
+            settings.restaurants_api_url, params=params, timeout=10
         )  # Timeout added
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
         audit_event("Restaurant Search", f"Successful search: {params}")
@@ -393,8 +396,8 @@ async def connect(sid, environ):
     memory = MemorySaver()  # Initialize memory per connection
 
     llm = ChatOllama(
-        base_url=config.ollama_base_url,
-        model=config.ollama_model,
+        base_url=settings.ollama_base_url,
+        model=settings.ollama_model,
         temperature=0,
         num_predict=8196,
     )
@@ -427,9 +430,9 @@ async def handle_chat_message(sid, data):
     session_id = data.get("session_id")
     llm_id = data.get("llm_id")
     message = data.get("message")
-    socket_session = await sio.get_session(sid)
-    agent_executor = socket_session.get("agent_executor")
-    memory = socket_session.get("memory")
+    # socket_session = await sio.get_session(sid)
+    # agent_executor = socket_session.get("agent_executor")
+    # memory = socket_session.get("memory")
 
     if not session_id or not message:
         await sio.emit("chat_response", {"error": "Invalid message format"}, room=sid)
@@ -450,22 +453,53 @@ async def handle_chat_message(sid, data):
                 db.commit()
                 logger.info(f"New session created: {session_id}")
 
-            # Fetch chat history for the session
-            chat_history = db.query(Chat).filter(Chat.session_id == session_id).all()
-            history_messages = [
-                {"role": chat.role, "message": chat.message} for chat in chat_history
-            ]
-
-            # Fetch the selected LLM
-            llm = db.query(LLM).filter(LLM.id == llm_id).first()
-            if not llm:
+            # Load the selected LLM from the database
+            llm_data = db.query(LLM).filter(LLM.id == llm_id).first()
+            if not llm_data:
                 await sio.emit("chat_response", {"error": "LLM not found"}, room=sid)
                 return
 
-            config = {"configurable": {"thread_id": "abc123"}}
-            response = agent_executor.invoke(
-                {"messages": [HumanMessage(content=message)]}, config
+            # Create the LLM instance with loaded config
+            llm = ChatOllama(
+                base_url=llm_data.base_url,
+                model=llm_data.model_name,
+                temperature=0,  # Adjust as needed
+                num_predict=8196,  # Adjust as needed
             )
+
+            # Fetch chat history for the session
+            chat_history = db.query(Chat).filter(Chat.session_id == session_id).all()
+            history_messages = []
+            for chat in chat_history:
+                if chat.role == "user":
+                    history_messages.append(HumanMessage(content=chat.message))
+                else:
+                    history_messages.append(AIMessage(content=chat.message))
+
+            # Recreate the agent executor with the specific LLM and memory for the session
+            memory = (
+                MemorySaver()
+            )  # this will create new memory for every chat request. In a real application scenario, this memory should be loaded from some storage (like Redis). In the same way when the conversation ends, this memory should be saved to some place, in this case I'm just throwing it away.
+            tools = [
+                StructuredTool.from_function(
+                    func=restaurants_search_tool,
+                    name="RestaurantSearch",
+                    description="Useful for finding restaurants based on budget, dish name, and dish type.",
+                    args_schema=RestaurantSearchInput,
+                )
+            ]
+            agent_executor = create_react_agent(
+                llm, tools, checkpointer=memory, state_modifier=agent_prompt
+            )
+
+            # Invoke the agent with the chat history
+            config = {
+                "configurable": {"thread_id": "abc123"}
+            }  # this needs to be improved.
+            response = agent_executor.invoke(
+                {"messages": [HumanMessage(content=message)] + history_messages}, config
+            )  # Append history messages
+
             response_message = getattr(
                 response["messages"][-1],
                 "content",

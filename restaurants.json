@@ -1,0 +1,452 @@
+[
+  {
+    "id": 1,
+    "name": "The Golden Spoon",
+    "rating": 4.5,
+    "dish_type": "veg",
+    "cuisines": "Indian",
+    "budget": 250.0,
+    "dishes": "Butter Chicken, Naan"
+  },
+  {
+    "id": 2,
+    "name": "Spice & Rice",
+    "rating": 4.0,
+    "dish_type": "non-veg",
+    "cuisines": "Chinese",
+    "budget": 300.0,
+    "dishes": "Kung Pao Chicken, Fried Rice"
+  },
+  {
+    "id": 3,
+    "name": "Pasta Paradise",
+    "rating": 4.8,
+    "dish_type": "veg",
+    "cuisines": "Italian",
+    "budget": 200.0,
+    "dishes": "Spaghetti Carbonara, Pizza Margherita"
+  },
+  {
+    "id": 4,
+    "name": "Taco Fiesta",
+    "rating": 4.2,
+    "dish_type": "non-veg",
+    "cuisines": "Mexican",
+    "budget": 280.0,
+    "dishes": "Tacos al Pastor, Burritos"
+  },
+  {
+    "id": 5,
+    "name": "Sushi Sensation",
+    "rating": 4.7,
+    "dish_type": "veg",
+    "cuisines": "Japanese",
+    "budget": 350.0,
+    "dishes": "Sushi, Ramen"
+  },
+  {
+    "id": 6,
+    "name": "Le Bistro Français",
+    "rating": 4.9,
+    "dish_type": "non-veg",
+    "cuisines": "French",
+    "budget": 400.0,
+    "dishes": "Coq au Vin, Boeuf Bourguignon"
+  },
+  {
+    "id": 7,
+    "name": "La Tapas Bar",
+    "rating": 4.3,
+    "dish_type": "veg",
+    "cuisines": "Spanish",
+    "budget": 220.0,
+    "dishes": "Paella, Gazpacho"
+  },
+  {
+    "id": 8,
+    "name": "American Grill",
+    "rating": 4.1,
+    "dish_type": "non-veg",
+    "cuisines": "American",
+    "budget": 320.0,
+    "dishes": "Hamburger, Barbecue Ribs"
+  },
+  {
+    "id": 9,
+    "name": "Greek Odyssey",
+    "rating": 4.6,
+    "dish_type": "veg",
+    "cuisines": "Greek",
+    "budget": 270.0,
+    "dishes": "Souvlaki, Spanakopita"
+  },
+  {
+    "id": 10,
+    "name": "Pho-nomenal",
+    "rating": 4.4,
+    "dish_type": "non-veg",
+    "cuisines": "Vietnamese",
+    "budget": 290.0,
+    "dishes": "Pho, Bun Cha"
+  },
+  {
+    "id": 11,
+    "name": "Mediterranean Mezze",
+    "rating": 4.7,
+    "dish_type": "veg",
+    "cuisines": "Lebanese",
+    "budget": 230.0,
+    "dishes": "Hummus, Falafel"
+  },
+  {
+    "id": 12,
+    "name": "Moroccan Magic",
+    "rating": 4.2,
+    "dish_type": "non-veg",
+    "cuisines": "Moroccan",
+    "budget": 310.0,
+    "dishes": "Tagine, Couscous"
+  },
+  {
+    "id": 13,
+    "name": "Ethiopian Enchantment",
+    "rating": 4.5,
+    "dish_type": "veg",
+    "cuisines": "Ethiopian",
+    "budget": 260.0,
+    "dishes": "Injera, Gomen"
+  },
+  {
+    "id": 14,
+    "name": "Brazilian Bites",
+    "rating": 4.0,
+    "dish_type": "non-veg",
+    "cuisines": "Brazilian",
+    "budget": 330.0,
+    "dishes": "Feijoada, Moqueca"
+  },
+  {
+    "id": 15,
+    "name": "Peruvian Passion",
+    "rating": 4.8,
+    "dish_type": "veg",
+    "cuisines": "Peruvian",
+    "budget": 240.0,
+    "dishes": "Ceviche, Aji de Gallina"
+  },
+  {
+    "id": 16,
+    "name": "Korean Kitchen",
+    "rating": 4.3,
+    "dish_type": "non-veg",
+    "cuisines": "Korean",
+    "budget": 300.0,
+    "dishes": "Kimchi, Bulgogi"
+  },
+  {
+    "id": 17,
+    "name": "Turkish Delight",
+    "rating": 4.6,
+    "dish_type": "veg",
+    "cuisines": "Turkish",
+    "budget": 270.0,
+    "dishes": "Kebab, Baklava"
+  },
+  {
+    "id": 18,
+    "name": "German Gaststätte",
+    "rating": 4.1,
+    "dish_type": "non-veg",
+    "cuisines": "German",
+    "budget": 320.0,
+    "dishes": "Schnitzel, Sausage"
+  },
+  {
+    "id": 19,
+    "name": "Russian Rendezvous",
+    "rating": 4.4,
+    "dish_type": "veg",
+    "cuisines": "Russian",
+    "budget": 290.0,
+    "dishes": "Borscht, Pelmeni"
+  },
+  {
+    "id": 20,
+    "name": "The Curry Leaf",
+    "rating": 4.9,
+    "dish_type": "veg",
+    "cuisines": "Indian",
+    "budget": 200.0,
+    "dishes": "Dal Makhani, Palak Paneer"
+  },
+  {
+    "id": 21,
+    "name": "Wok This Way",
+    "rating": 4.2,
+    "dish_type": "non-veg",
+    "cuisines": "Chinese",
+    "budget": 250.0,
+    "dishes": "Sweet and Sour Pork, Mapo Tofu"
+  },
+  {
+    "id": 22,
+    "name": "Pizzaiolo",
+    "rating": 4.7,
+    "dish_type": "veg",
+    "cuisines": "Italian",
+    "budget": 180.0,
+    "dishes": "Pizza Margherita, Lasagna"
+  },
+  {
+    "id": 23,
+    "name": "Casa Mexicana",
+    "rating": 4.0,
+    "dish_type": "non-veg",
+    "cuisines": "Mexican",
+    "budget": 220.0,
+    "dishes": "Enchiladas, Guacamole"
+  },
+  {
+    "id": 24,
+    "name": "Tokyo Sushi Bar",
+    "rating": 4.5,
+    "dish_type": "veg",
+    "cuisines": "Japanese",
+    "budget": 300.0,
+    "dishes": "Sushi, Tempura"
+  },
+  {
+    "id": 25,
+    "name": "Parisian Bistro",
+    "rating": 4.8,
+    "dish_type": "non-veg",
+    "cuisines": "French",
+    "budget": 350.0,
+    "dishes": "Crêpes, Onion Soup"
+  },
+  {
+    "id": 26,
+    "name": "Barcelona Tapas",
+    "rating": 4.3,
+    "dish_type": "veg",
+    "cuisines": "Spanish",
+    "budget": 200.0,
+    "dishes": "Tapas, Tortilla Española"
+  },
+  {
+    "id": 27,
+    "name": "New York Deli",
+    "rating": 4.1,
+    "dish_type": "non-veg",
+    "cuisines": "American",
+    "budget": 280.0,
+    "dishes": "Hot Dog, Apple Pie"
+  },
+  {
+    "id": 28,
+    "name": "Athens Taverna",
+    "rating": 4.6,
+    "dish_type": "veg",
+    "cuisines": "Greek",
+    "budget": 250.0,
+    "dishes": "Gyros, Baklava"
+  },
+  {
+    "id": 29,
+    "name": "Saigon Street Food",
+    "rating": 4.4,
+    "dish_type": "non-veg",
+    "cuisines": "Vietnamese",
+    "budget": 230.0,
+    "dishes": "Banh Mi, Goi Cuon"
+  },
+  {
+    "id": 30,
+    "name": "Beirut Bites",
+    "rating": 4.7,
+    "dish_type": "veg",
+    "cuisines": "Lebanese",
+    "budget": 190.0,
+    "dishes": "Tabbouleh, Baba Ghanoush"
+  },
+  {
+    "id": 31,
+    "name": "Marrakech Market",
+    "rating": 4.2,
+    "dish_type": "non-veg",
+    "cuisines": "Moroccan",
+    "budget": 270.0,
+    "dishes": "Pastilla, Harira"
+  },
+  {
+    "id": 32,
+    "name": "Addis Ababa Kitchen",
+    "rating": 4.5,
+    "dish_type": "veg",
+    "cuisines": "Ethiopian",
+    "budget": 220.0,
+    "dishes": "Doro Wat, Tibs"
+  },
+  {
+    "id": 33,
+    "name": "Rio de Janeiro Grill",
+    "rating": 4.0,
+    "dish_type": "non-veg",
+    "cuisines": "Brazilian",
+    "budget": 300.0,
+    "dishes": "Coxinha, Brigadeiro"
+  },
+  {
+    "id": 34,
+    "name": "Lima's Flavors",
+    "rating": 4.8,
+    "dish_type": "veg",
+    "cuisines": "Peruvian",
+    "budget": 240.0,
+    "dishes": "Lomo Saltado, Suspiro Limeño"
+  },
+  {
+    "id": 35,
+    "name": "Seoul Food",
+    "rating": 4.3,
+    "dish_type": "non-veg",
+    "cuisines": "Korean",
+    "budget": 280.0,
+    "dishes": "Bibimbap, Tteokbokki"
+  },
+  {
+    "id": 36,
+    "name": "Istanbul Eats",
+    "rating": 4.6,
+    "dish_type": "veg",
+    "cuisines": "Turkish",
+    "budget": 250.0,
+    "dishes": "Dolma, Pide"
+  },
+  {
+    "id": 37,
+    "name": "Munich Biergarten",
+    "rating": 4.1,
+    "dish_type": "non-veg",
+    "cuisines": "German",
+    "budget": 320.0,
+    "dishes": "Sauerkraut, Black Forest Cake"
+  },
+  {
+    "id": 38,
+    "name": "Moscow Bistro",
+    "rating": 4.4,
+    "dish_type": "veg",
+    "cuisines": "Russian",
+    "budget": 290.0,
+    "dishes": "Blini, Kvass"
+  },
+  {
+    "id": 39,
+    "name": "The Tandoor Oven",
+    "rating": 4.7,
+    "dish_type": "non-veg",
+    "cuisines": "Indian",
+    "budget": 300.0,
+    "dishes": "Chicken Tikka Masala, Biryani"
+  },
+  {
+    "id": 40,
+    "name": "China House",
+    "rating": 4.2,
+    "dish_type": "veg",
+    "cuisines": "Chinese",
+    "budget": 220.0,
+    "dishes": "Peking Duck, Dim Sum"
+  },
+  {
+    "id": 41,
+    "name": "Roma Trattoria",
+    "rating": 4.5,
+    "dish_type": "non-veg",
+    "cuisines": "Italian",
+    "budget": 280.0,
+    "dishes": "Gnocchi, Risotto"
+  },
+  {
+    "id": 42,
+    "name": "Mexico Lindo",
+    "rating": 4.0,
+    "dish_type": "veg",
+    "cuisines": "Mexican",
+    "budget": 200.0,
+    "dishes": "Chiles Rellenos, Tacos al Pastor"
+  },
+  {
+    "id": 43,
+    "name": "Kyoto Sushi",
+    "rating": 4.8,
+    "dish_type": "non-veg",
+    "cuisines": "Japanese",
+    "budget": 350.0,
+    "dishes": "Teriyaki Chicken, Miso Soup"
+  },
+  {
+    "id": 44,
+    "name": "Chez Maurice",
+    "rating": 4.3,
+    "dish_type": "veg",
+    "cuisines": "French",
+    "budget": 250.0,
+    "dishes": "Ratatouille, Crêpes"
+  },
+  {
+    "id": 45,
+    "name": "Madrid Tapas",
+    "rating": 4.6,
+    "dish_type": "non-veg",
+    "cuisines": "Spanish",
+    "budget": 300.0,
+    "dishes": "Churros, Paella"
+  },
+  {
+    "id": 46,
+    "name": "Big Apple Diner",
+    "rating": 4.1,
+    "dish_type": "veg",
+    "cuisines": "American",
+    "budget": 220.0,
+    "dishes": "Mac and Cheese, Hamburger"
+  },
+  {
+    "id": 47,
+    "name": "Mykonos Taverna",
+    "rating": 4.4,
+    "dish_type": "non-veg",
+    "cuisines": "Greek",
+    "budget": 280.0,
+    "dishes": "Souvlaki, Moussaka"
+  },
+  {
+    "id": 48,
+    "name": "Hanoi Street Food",
+    "rating": 4.7,
+    "dish_type": "veg",
+    "cuisines": "Vietnamese",
+    "budget": 200.0,
+    "dishes": "Goi Cuon, Ca Phe Sua Da"
+  },
+  {
+    "id": 49,
+    "name": "Damascus Delights",
+    "rating": 4.2,
+    "dish_type": "non-veg",
+    "cuisines": "Lebanese",
+    "budget": 250.0,
+    "dishes": "Shawarma, Hummus"
+  },
+  {
+    "id": 50,
+    "name": "Casablanca Cafe",
+    "rating": 4.5,
+    "dish_type": "veg",
+    "cuisines": "Moroccan",
+    "budget": 230.0,
+    "dishes": "Couscous, Mint Tea"
+  }
+]
