@@ -1,2 +1,17 @@
 2025-02-12T19:35:30.902678,Client Connect,Client VshMFZPtaAlvHRiJAAAB connected.
 2025-02-12T19:36:30.840831,Client Disconnect,Client VshMFZPtaAlvHRiJAAAB disconnected.
+2025-02-14 09:59:10,962 - app.database - ERROR - Database session error: 'RestaurantRepository' object has no attribute 'search_restaurants'
+2025-02-14 09:59:48,145 - app.repositories.restaurant_repository - INFO - Searching restaurants with criteria - dish_type: veg, dish_name: Pizza, budget: 10.0
+2025-02-14 10:00:11,780 - app.database - ERROR - Database session error: (sqlite3.IntegrityError) UNIQUE constraint failed: restaurants.id
+[SQL: INSERT INTO restaurants (id, name, rating, dish_type, cuisines, budget, dishes) VALUES (?, ?, ?, ?, ?, ?, ?)]
+[parameters: [(1, 'The Golden Spoon', 4.5, 'veg', 'Indian', 250.0, 'Butter Chicken, Naan'), (2, 'Spice & Rice', 4.0, 'non-veg', 'Chinese', 300.0, 'Kung Pao Chicken, Fried Rice'), (3, 'Pasta Paradise', 4.8, 'veg', 'Italian', 200.0, 'Spaghetti Carbonara, Pizza Margherita'), (4, 'Taco Fiesta', 4.2, 'non-veg', 'Mexican', 280.0, 'Tacos al Pastor, Burritos'), (5, 'Sushi Sensation', 4.7, 'veg', 'Japanese', 350.0, 'Sushi, Ramen'), (6, 'Le Bistro Français', 4.9, 'non-veg', 'French', 400.0, 'Coq au Vin, Boeuf Bourguignon'), (7, 'La Tapas Bar', 4.3, 'veg', 'Spanish', 220.0, 'Paella, Gazpacho'), (8, 'American Grill', 4.1, 'non-veg', 'American', 320.0, 'Hamburger, Barbecue Ribs')  ... displaying 10 of 50 total bound parameter sets ...  (49, 'Damascus Delights', 4.2, 'non-veg', 'Lebanese', 250.0, 'Shawarma, Hummus'), (50, 'Casablanca Cafe', 4.5, 'veg', 'Moroccan', 230.0, 'Couscous, Mint Tea')]]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2025-02-14 10:01:19,448 - app.repositories.restaurant_repository - INFO - Searching restaurants with criteria - dish_type: veg, dish_name: Naan, budget: 10.0
+2025-02-14 10:02:09,051 - app.repositories.restaurant_repository - INFO - Searching restaurants with criteria - dish_type: veg, dish_name: Naan, budget: 1000.0
+2025-02-14 10:02:09,054 - app.database - ERROR - Database session error: Unable to serialize unknown type: <class 'app.models.Restaurant'>
+2025-02-14 10:17:07,483 - app.repositories.restaurant_repository - INFO - Searching restaurants with criteria - dish_type: veg, dish_name: Naan, budget: 1000.0
+2025-02-14 10:19:03,597 - app.repositories.restaurant_repository - INFO - Searching restaurants with criteria - dish_type: veg, dish_name: Naan, budget: 1000.0
+2025-02-14 10:19:07,151 - app.database - ERROR - Database session error: 1 validation errors:
+  {'type': 'list_type', 'loc': ('response',), 'msg': 'Input should be a valid list', 'input': {'data': [<app.models.Restaurant object at 0x000001C030657E50>]}}
+
+2025-02-14 10:19:49,222 - app.repositories.restaurant_repository - INFO - Searching restaurants with criteria - dish_type: veg, dish_name: Naan, budget: 1000.0

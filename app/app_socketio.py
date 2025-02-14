@@ -9,7 +9,7 @@ import csv
 from datetime import datetime
 from faker import Faker
 
-from typing import Any, Optional
+from typing import Any, List, Optional
 from app.schemas import (
     ChatMessageSchema,
     LLMSchema,
@@ -124,29 +124,39 @@ session_repo = ChatSessionRepository()
 llm_repo = LLMRepository()
 restaurant_repo = RestaurantRepository()
 
-
 @app.post("/chat")
 async def chat_endpoint(data: ChatMessage, db: Session = Depends(get_db)):
     if not data.session_id:
         data.session_id = str(uuid.uuid4())
-        new_session = ChatSession(id=data.session_id, created_at=datetime.now().isoformat())
-        db.add(new_session)
+        session_schema = ChatSessionSchema(
+            id=data.session_id, created_at=datetime.now().isoformat()
+        )
+        session_repo.create(db, session_schema)
         logger.info(f"New session created: {data.session_id}")
 
     if data.llm_id:
-        llm = db.query(LLM).filter(LLM.id == data.llm_id).first()
+        llm = llm_repo.get_by_id(db, data.llm_id)
         if not llm:
             raise HTTPException(status_code=404, detail="LLM not found")
 
     response_message = f"Echo: {data.message}"
     timestamp = datetime.now().isoformat()
 
-    user_message = Chat(session_id=data.session_id, message=data.message, role="user", timestamp=timestamp)
-    agent_message = Chat(session_id=data.session_id, message=response_message, role="agent", timestamp=timestamp)
+    user_chat_schema = ChatSchema(
+        session_id=data.session_id,
+        message=data.message,
+        role="user",
+        timestamp=timestamp,
+    )
+    agent_chat_schema = ChatSchema(
+        session_id=data.session_id,
+        message=response_message,
+        role="agent",
+        timestamp=timestamp,
+    )
 
-    db.add(user_message)
-    db.add(agent_message)
-    db.commit()
+    chat_repo.create(db, user_chat_schema)
+    chat_repo.create(db, agent_chat_schema)
 
     return {"session_id": data.session_id, "response": response_message}
 
@@ -166,33 +176,45 @@ async def get_session(session_id: str, db: Session = Depends(get_db)):
 @app.post("/llms")
 async def add_llm(llm: LLMMetadata, db: Session = Depends(get_db)):
     try:
-        new_llm = LLM(name=llm.name, base_url=llm.base_url, model_name=llm.model_name)
-        db.add(new_llm)
-        db.commit()
+        llm_schema = LLMSchema(
+            name=llm.name, base_url=llm.base_url, model_name=llm.model_name
+        )
+        llm_repo.create(db, llm_schema)
     except IntegrityError:
         raise HTTPException(status_code=400, detail="LLM with this name already exists")
     return {"message": "LLM added successfully"}
 
 @app.get("/llms")
 async def list_llms(db: Session = Depends(get_db)):
-    llms = db.query(LLM).all()
+    llms = llm_repo.get_all(db)
     return [{"id": llm.id, "name": llm.name, "base_url": llm.base_url, "model_name": llm.model_name} for llm in llms]
+
 
 @app.put("/llms/{llm_id}")
 async def update_llm(llm_id: int, llm: LLMMetadata, db: Session = Depends(get_db)):
-    db_llm = db.query(LLM).filter(LLM.id == llm_id).first()
-    if not db_llm:
+    llm_schema = LLMSchema(
+        name=llm.name, base_url=llm.base_url, model_name=llm.model_name
+    )
+    updated_llm = llm_repo.update(db, llm_id, llm_schema)
+    if not updated_llm:
         raise HTTPException(status_code=404, detail="LLM not found")
-    
-    db_llm.name = llm.name
-    db_llm.base_url = llm.base_url
-    db_llm.model_name = llm.model_name
-    db.commit()
-    
     return {"message": "LLM updated successfully"}
 
 
-@app.get("/app/v1/restaurants")
+@app.put("/llms/{llm_id}")
+async def update_llm(llm_id: int, llm: LLMMetadata, db: Session = Depends(get_db)):
+    llm_schema = LLMSchema(
+        name=llm.name, base_url=llm.base_url, model_name=llm.model_name
+    )
+    updated_llm = llm_repo.update(db, llm_id, llm_schema)
+    if not updated_llm:
+        raise HTTPException(status_code=404, detail="LLM not found")
+    return {"message": "LLM updated successfully"}
+
+    return {"message": "LLM updated successfully"}
+
+
+@app.get("/app/v1/restaurants", response_model=dict[str, List[RestaurantSchema]])
 async def get_restaurants(
     dish_type: str = Query(default="veg", description="veg/non-veg"),
     dish_name: str = Query(
@@ -203,50 +225,179 @@ async def get_restaurants(
     limit: int = Query(default=10, description="Limit N records"),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    restaurants = (
-        db.query(Restaurant)
-        .filter(
-            Restaurant.dish_type == dish_type,
-            # Restaurant.budget <= budget,
-            Restaurant.dishes.contains(dish_name),
-        )
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
-    return {"data": [RestaurantPydantic.model_validate(res) for res in restaurants]}
+    restaurants = restaurant_repo.search(db, dish_type, dish_name, budget, skip, limit)
+    return {"data": restaurants}
 
 
 @app.post("/populate_fake_restaurants")
 async def populate_restaurants(db: Session = Depends(get_db)):
     faker = Faker()
+    restaurants: list[RestaurantSchema] = []
     for _ in range(10):
-        restaurant = Restaurant(
-            name=faker.company(),
-            rating=round(faker.pyfloat(min_value=1, max_value=5, right_digits=1), 1),
-            dish_type=faker.random_element(elements=["veg", "non-veg"]),
-            cuisines=faker.random_element(elements=['Indian','Italian','Chinese','Mexican','Thai','Japanese','French','Spanish','American','Greek','Vietnamese','Lebanese','Moroccan','Ethiopian','Brazilian','Peruvian','Korean','Turkish','German','Russian']),
-            budget=faker.pyfloat(min_value=100, max_value=1000),
-            
-            dishes=','.join(faker.random_elements(unique=True, elements=['Butter Chicken','Chicken Tikka Masala','Samosa','Naan','Biryani','Dal Makhani','Palak Paneer','Rogan Josh','Vindaloo','Tandoori Chicken','Pizza Margherita','Spaghetti Carbonara','Lasagna','Risotto','Gnocchi','Kung Pao Chicken','Sweet and Sour Pork','Mapo Tofu','Peking Duck','Dim Sum','Tacos al Pastor','Enchiladas','Guacamole','Burritos','Chiles Rellenos','Pad Thai','Green Curry','Tom Yum Soup','Mango Sticky Rice','Massaman Curry','Sushi','Ramen','Tempura','Teriyaki Chicken','Miso Soup','Coq au Vin','Boeuf Bourguignon','Crêpes','Onion Soup','Ratatouille','Paella','Tapas','Gazpacho','Tortilla Española','Churros','Hamburger','Hot Dog','Mac and Cheese','Apple Pie','Barbecue Ribs','Souvlaki','Moussaka','Spanakopita','Baklava','Gyros','Pho','Banh Mi','Goi Cuon','Bun Cha','Ca Phe Sua Da','Hummus','Falafel','Shawarma','Tabbouleh','Baba Ghanoush','Tagine','Couscous','Pastilla','Harira','Mint Tea','Injera','Doro Wat','Kitfo','Gomen','Tibs','Feijoada','Moqueca','Coxinha','Pão de Queijo','Brigadeiro','Ceviche','Lomo Saltado','Aji de Gallina','Pachamanca','Suspiro Limeño','Kimchi','Bibimbap','Bulgogi','Tteokbokki','Japchae','Kebab','Baklava','Dolma','Manti','Pide','Schnitzel','Sausage','Sauerkraut','Black Forest Cake','Spätzle','Borscht','Pelmeni','Beef Stroganoff','Blini','Kvass'])),
+        restaurants.append(
+            RestaurantSchema(
+                name=faker.company(),
+                rating=round(
+                    faker.pyfloat(min_value=1, max_value=5, right_digits=1), 1
+                ),
+                dish_type=faker.random_element(elements=["veg", "non-veg"]),
+                cuisines=faker.random_element(
+                    elements=[
+                        "Indian",
+                        "Italian",
+                        "Chinese",
+                        "Mexican",
+                        "Thai",
+                        "Japanese",
+                        "French",
+                        "Spanish",
+                        "American",
+                        "Greek",
+                        "Vietnamese",
+                        "Lebanese",
+                        "Moroccan",
+                        "Ethiopian",
+                        "Brazilian",
+                        "Peruvian",
+                        "Korean",
+                        "Turkish",
+                        "German",
+                        "Russian",
+                    ]
+                ),
+                budget=faker.pyfloat(min_value=100, max_value=1000),
+                dishes=",".join(
+                    faker.random_elements(
+                        unique=True,
+                        elements=[
+                            "Butter Chicken",
+                            "Chicken Tikka Masala",
+                            "Samosa",
+                            "Naan",
+                            "Biryani",
+                            "Dal Makhani",
+                            "Palak Paneer",
+                            "Rogan Josh",
+                            "Vindaloo",
+                            "Tandoori Chicken",
+                            "Pizza Margherita",
+                            "Spaghetti Carbonara",
+                            "Lasagna",
+                            "Risotto",
+                            "Gnocchi",
+                            "Kung Pao Chicken",
+                            "Sweet and Sour Pork",
+                            "Mapo Tofu",
+                            "Peking Duck",
+                            "Dim Sum",
+                            "Tacos al Pastor",
+                            "Enchiladas",
+                            "Guacamole",
+                            "Burritos",
+                            "Chiles Rellenos",
+                            "Pad Thai",
+                            "Green Curry",
+                            "Tom Yum Soup",
+                            "Mango Sticky Rice",
+                            "Massaman Curry",
+                            "Sushi",
+                            "Ramen",
+                            "Tempura",
+                            "Teriyaki Chicken",
+                            "Miso Soup",
+                            "Coq au Vin",
+                            "Boeuf Bourguignon",
+                            "Crêpes",
+                            "Onion Soup",
+                            "Ratatouille",
+                            "Paella",
+                            "Tapas",
+                            "Gazpacho",
+                            "Tortilla Española",
+                            "Churros",
+                            "Hamburger",
+                            "Hot Dog",
+                            "Mac and Cheese",
+                            "Apple Pie",
+                            "Barbecue Ribs",
+                            "Souvlaki",
+                            "Moussaka",
+                            "Spanakopita",
+                            "Baklava",
+                            "Gyros",
+                            "Pho",
+                            "Banh Mi",
+                            "Goi Cuon",
+                            "Bun Cha",
+                            "Ca Phe Sua Da",
+                            "Hummus",
+                            "Falafel",
+                            "Shawarma",
+                            "Tabbouleh",
+                            "Baba Ghanoush",
+                            "Tagine",
+                            "Couscous",
+                            "Pastilla",
+                            "Harira",
+                            "Mint Tea",
+                            "Injera",
+                            "Doro Wat",
+                            "Kitfo",
+                            "Gomen",
+                            "Tibs",
+                            "Feijoada",
+                            "Moqueca",
+                            "Coxinha",
+                            "Pão de Queijo",
+                            "Brigadeiro",
+                            "Ceviche",
+                            "Lomo Saltado",
+                            "Aji de Gallina",
+                            "Pachamanca",
+                            "Suspiro Limeño",
+                            "Kimchi",
+                            "Bibimbap",
+                            "Bulgogi",
+                            "Tteokbokki",
+                            "Japchae",
+                            "Kebab",
+                            "Baklava",
+                            "Dolma",
+                            "Manti",
+                            "Pide",
+                            "Schnitzel",
+                            "Sausage",
+                            "Sauerkraut",
+                            "Black Forest Cake",
+                            "Spätzle",
+                            "Borscht",
+                            "Pelmeni",
+                            "Beef Stroganoff",
+                            "Blini",
+                            "Kvass",
+                        ],
+                    )
+                ),
+            )
         )
-        db.add(restaurant)
-    db.commit()
+    restaurant_repo.create_batch(db, restaurants)
     return {"message": "Fake restaurant data populated successfully"}
 
 
 @app.post("/load_restaurants")
 async def load_restaurants(db: Session = Depends(get_db)):
+    restaurants: list[RestaurantSchema] = []
     for row in json.load(open("restaurants.json", "r")):
-        restaurant = Restaurant(**row)
-        db.add(restaurant)
-    db.commit()
-    return {"message": "Logical restaurants data populated successfully"}
+        restaurants.append(RestaurantSchema(**row))
+    restaurant_repo.create_batch(db, restaurants)
+    return {
+        "message": f"{len(restaurants)} Logical restaurants data populated successfully"
+    }
 
 
 @app.get("/restaurants/{restaurant_id}")
 async def get_restaurant(restaurant_id: int = Path(..., description="The ID of the restaurant"), db: Session = Depends(get_db)):
-    restaurant = db.query(Restaurant).filter(Restaurant.id == restaurant_id).first()
+    restaurant = restaurant_repo.get_by_id(db, restaurant_id)
     if not restaurant:
         raise HTTPException(status_code=404, detail="Restaurant not found")
     return restaurant
@@ -257,8 +408,8 @@ async def list_restaurants(
     limit: int = Query(default=10, description="Limit N records"),
     db: Session = Depends(get_db)
 ):
-    restaurants = db.query(Restaurant).offset(skip).limit(limit).all()
-    return restaurants
+    return restaurant_repo.get_all(db, skip=skip, limit=limit)
+
 
 @app.post("/restaurants")
 async def create_restaurant(
@@ -270,18 +421,15 @@ async def create_restaurant(
     dishes: str,
     db: Session = Depends(get_db)
 ):
-    restaurant = Restaurant(
+    restaurant_schema = RestaurantSchema(
         name=name,
         rating=rating,
         dish_type=dish_type,
         cuisines=cuisines,
         budget=budget,
-        dishes=dishes
+        dishes=dishes,
     )
-    db.add(restaurant)
-    db.commit()
-    db.refresh(restaurant)
-    return restaurant
+    return restaurant_repo.create(db, restaurant_schema)
 
 @app.put("/restaurants/{restaurant_id}")
 async def update_restaurant(
@@ -294,31 +442,24 @@ async def update_restaurant(
     dishes: str = None,
     db: Session = Depends(get_db)
 ):
-    restaurant = db.query(Restaurant).filter(Restaurant.id == restaurant_id).first()
-    if not restaurant:
+    restaurant_schema = RestaurantSchema(
+        name=name,
+        rating=rating,
+        dish_type=dish_type,
+        cuisines=cuisines,
+        budget=budget,
+        dishes=dishes,
+    )
+    updated_restaurant = restaurant_repo.update(db, restaurant_id, restaurant_schema)
+    if not updated_restaurant:
         raise HTTPException(status_code=404, detail="Restaurant not found")
-    
-    if name: restaurant.name = name
-    if rating: restaurant.rating = rating
-    if dish_type: restaurant.dish_type = dish_type
-    if cuisines: restaurant.cuisines = cuisines
-    if budget: restaurant.budget = budget
-    if dishes: restaurant.dishes = dishes
-    
-    db.commit()
-    db.refresh(restaurant)
-    return restaurant
+    return updated_restaurant
 
 @app.delete("/restaurants/{restaurant_id}")
 async def delete_restaurant(restaurant_id: int, db: Session = Depends(get_db)):
-    restaurant = db.query(Restaurant).filter(Restaurant.id == restaurant_id).first()
-    if not restaurant:
+    if not restaurant_repo.delete(db, restaurant_id):
         raise HTTPException(status_code=404, detail="Restaurant not found")
-    
-    db.delete(restaurant)
-    db.commit()
     return {"message": f"Restaurant {restaurant_id} deleted successfully"}
-
 
 def restaurants_search_tool(
     budget: float,
@@ -427,7 +568,7 @@ async def disconnect(sid):
 
 @sio.on("chat_message")
 async def handle_chat_message(sid, data):
-    session_id = data.get("session_id")
+    session_id: str = data.get("session_id")
     llm_id = data.get("llm_id")
     message = data.get("message")
     # socket_session = await sio.get_session(sid)
@@ -444,17 +585,17 @@ async def handle_chat_message(sid, data):
         with db_manager.get_db() as db:  # Use the context manager here
 
             # Check if session exists, create if not
-            session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+            session = session_repo.get_by_id(db, session_id)
             if not session:
-                session = ChatSession(
+                session = ChatSessionSchema(
                     id=session_id, created_at=datetime.now().isoformat()
                 )
-                db.add(session)
-                db.commit()
-                logger.info(f"New session created: {session_id}")
+                session = session_repo.create(db, session)
+                logger.info(f"New session created: {session.id}")
 
             # Load the selected LLM from the database
             llm_data = db.query(LLM).filter(LLM.id == llm_id).first()
+            llm_data = llm_repo.get_by_id(db, llm_id)
             if not llm_data:
                 await sio.emit("chat_response", {"error": "LLM not found"}, room=sid)
                 return
@@ -468,7 +609,7 @@ async def handle_chat_message(sid, data):
             )
 
             # Fetch chat history for the session
-            chat_history = db.query(Chat).filter(Chat.session_id == session_id).all()
+            chat_history = chat_repo.get_by_session_id(db, session_id)
             history_messages = []
             for chat in chat_history:
                 if chat.role == "user":
@@ -507,25 +648,22 @@ async def handle_chat_message(sid, data):
             )
             # Save the chat response
             timestamp = datetime.now()
-            user_message = Chat(
+            user_message = ChatSchema(
                 session_id=session_id,
                 message=message,
                 role="user",
                 timestamp=timestamp.isoformat(),
             )
-            db.add(user_message)
-            db.commit()
-            user_message_id = user_message.id
+            user_message = chat_repo.create(db, user_message)
 
-            agent_message = Chat(
+            agent_message = ChatSchema(
                 session_id=session_id,
                 message=response_message,
                 role="agent",
                 timestamp=timestamp.isoformat(),
             )
             db.add(agent_message)
-            db.commit()
-            agent_message_id = agent_message.id
+            agent_message = chat_repo.create(db, agent_message)
 
         # Emit the response
         await sio.emit(
@@ -533,8 +671,8 @@ async def handle_chat_message(sid, data):
             {
                 "response": response_message,
                 "session_id": session_id,
-                "user_message_id": user_message_id,
-                "agent_message_id": agent_message_id,
+                "user_message_id": user_message.id,
+                "agent_message_id": agent_message.id,
                 "model_id": llm_id,
             },
             room=sid,  # Send only to client's room

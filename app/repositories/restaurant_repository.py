@@ -17,6 +17,16 @@ class RestaurantRepository(BaseRepository[Restaurant, RestaurantSchema]):
         db.refresh(db_restaurant)
         return db_restaurant
 
+    def create_batch(
+        self, db: Session, restaurants: list[RestaurantSchema]
+    ) -> Restaurant:
+        for restaurant in restaurants:
+            logger.info(f"Creating new restaurant: {restaurant.name}")
+            db_restaurant = Restaurant(**restaurant.model_dump(exclude={"id"}))
+            db.add(db_restaurant)
+        db.commit()
+        return True
+
     def get_by_id(self, db: Session, id: int) -> Optional[Restaurant]:
         logger.debug(f"Fetching restaurant with id: {id}")
         return db.query(Restaurant).filter(Restaurant.id == id).first()
